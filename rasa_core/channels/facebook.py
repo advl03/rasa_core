@@ -10,6 +10,7 @@ import logging
 import six
 from fbmessenger import (
     BaseMessenger, elements, MessengerClient, attachments)
+from fbmessenger.sender_actions import SenderAction
 from flask import Blueprint, request, jsonify
 from typing import Text, List, Dict, Any, Callable
 
@@ -123,6 +124,7 @@ class MessengerBot(OutputChannel):
                                    {"sender": {"id": recipient_id}},
                                    'RESPONSE')
 
+    #Send text message
     def send_text_message(self, recipient_id, message):
         # type: (Text, Text) -> None
         """Send a message through this channel."""
@@ -131,12 +133,14 @@ class MessengerBot(OutputChannel):
 
         self.send(recipient_id, elements.Text(text=message))
 
+    #Send image attachment using its URL
     def send_image_url(self, recipient_id, image_url):
         # type: (Text, Text) -> None
         """Sends an image. Default will just post the url as a string."""
 
         self.send(recipient_id, attachments.Image(url=image_url))
 
+    #Send a text message with a list of buttons
     def send_text_with_buttons(self, recipient_id, text, buttons, **kwargs):
         # type: (Text, Text, List[Dict[Text, Any]], **Any) -> None
         """Sends buttons to the output."""
@@ -165,6 +169,143 @@ class MessengerBot(OutputChannel):
             self.messenger_client.send(payload,
                                        {"sender": {"id": recipient_id}},
                                        'RESPONSE')
+
+    #Send typing indication ON
+    #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
+    def send_typing_on(self, recipient_id):
+        logger.info("Sending TYPING ON")
+        
+        entry = {
+            'sender': {
+                'id': recipient_id
+                }
+        }
+        self.messenger_client.send_action('typing_on', entry)
+        
+
+    #Send typing indication OFF
+    #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
+    def send_typing_off(self, recipient_id):
+        logger.info("Sending TYPING OFF")
+        entry = {
+            'sender': {
+                'id': recipient_id
+                }
+        }
+        self.messenger_client.send_action('typing_off', entry)
+
+    #Send a list of buttons for quick replies
+    #https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
+    #The buttons may include icons
+    #Sample usage:
+    """
+        text = 'Text message'
+        quick_replies = [
+            {
+                'content_type':'text',
+                'title':'Yes',
+                'payload':'<POSTBACK_PAYLOAD>',
+                'image_url':'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Green_sphere.png/120px-Green_sphere.png'
+            },
+            {
+                'content_type':'text',
+                'title':'No',
+                'payload':'<POSTBACK_PAYLOAD>',
+                'image_url':'https://upload.wikimedia.org/wikipedia/commons/a/a5/Red_Dot_X_-_Single_Red_Dot.png'
+            },
+        ]
+        dispatcher.utter_send_quick_replies(text, quick_replies)
+    """
+    def send_quick_replies(self, recipient_id, text, quick_replies):
+        logger.info("Sending quick replies")
+        payload = {
+            'text':text,
+            'quick_replies': quick_replies
+        }
+        self.messenger_client.send(payload,
+                                   self._recipient_json(recipient_id),
+                                   'RESPONSE')
+
+    #Send a list template
+    #https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
+    #Sample usage:
+    """
+        elements = [
+            {
+                "title": "Title",
+                "subtitle": "Subtitle",
+                "image_url": "http://www.example.com/image.jpg",
+                "buttons": [{
+                    "type": "web_url",
+                    "url": "http://www.example.com/url",
+                    "title": "Ver ahora",
+                    "webview_height_ratio": "full"
+                }]
+		    },
+            ...
+        ]
+        dispatcher.utter_send_list_template(elements)   
+    """
+    def send_list_template(self, recipient_id, elements, top_element_style = 'compact'):
+        logger.info("Sending LIST template")
+        payload = {
+            'attachment': {
+                'type':'template',
+                'payload': {
+                    'template_type':'list',
+                    'top_element_style': top_element_style,
+                    'elements': elements
+                }
+            }
+        }
+        self.messenger_client.send(payload,
+                                   self._recipient_json(recipient_id),
+                                   'RESPONSE')
+
+    #Send a generic template
+    #https://developers.facebook.com/docs/messenger-platform/send-messages/template/generic
+    #Sample usage:
+    """
+        elements = [
+            {
+                'title': 'Title',
+                'image_url': 'http://www.example.com/image.jpg',
+                'subtitle': 'Subtítulo',
+                'default_action': {
+                    'type': 'web_url',
+                    'url': 'http://www.example.com/url',
+                    'webview_height_ratio': 'full'
+                },
+                'buttons':[
+                    {
+                        'type': 'web_url',
+                        'url': 'http://www.example.com/url',
+                        'title': 'Title',
+                        'webview_height_ratio': 'compact'
+                    },
+                    {...}
+                ]
+            },
+            {...}
+        ]
+        dispatcher.utter_send_generic_template(elements)
+    """
+    def send_generic_template(self, recipient_id, elements):
+        logger.info("Sending GENERIC template")
+        payload = {
+            'attachment': {
+                'type':'template',
+                'payload': {
+                    'template_type':'generic',
+                    'elements': elements
+                }
+            }
+        }
+        self.messenger_client.send(payload,
+                                   self._recipient_json(recipient_id),
+                                   'RESPONSE')
+
+
 
     def send_custom_message(self, recipient_id, elements):
         # type: (Text, List[Dict[Text, Any]]) -> None
@@ -274,7 +415,7 @@ class FacebookInput(HttpInputComponent):
                 # noinspection PyCompatibility
                 hmac_object = hmac.new(
                         str(app_secret),
-                        unicode(request_payload), digest_module)
+                        str(request_payload), digest_module)
             else:
                 hmac_object = hmac.new(
                         bytearray(app_secret, 'utf8'),
