@@ -231,8 +231,7 @@ class MessengerBot(OutputChannel):
                 }
             }
         }
-        self.messenger_client.send(payload,
-                                   self._recipient_json(recipient_id),
+        self.messenger_client.send(payload,self._recipient_json(recipient_id),
                                    'RESPONSE')
 
 
