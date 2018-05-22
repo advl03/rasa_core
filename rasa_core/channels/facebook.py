@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 class Messenger(BaseMessenger):
     """Implement a fbmessenger to parse incoming webhooks and send msgs."""
-
     def __init__(self, page_access_token, on_new_message):
         # type: (Text, Callable[[UserMessage], None]) -> None
 
@@ -173,8 +172,6 @@ class MessengerBot(OutputChannel):
     #Send typing indication ON
     #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
     def send_typing_on(self, recipient_id):
-        logger.info("Sending TYPING ON")
-        
         entry = {
             'sender': {
                 'id': recipient_id
@@ -186,7 +183,6 @@ class MessengerBot(OutputChannel):
     #Send typing indication OFF
     #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
     def send_typing_off(self, recipient_id):
-        logger.info("Sending TYPING OFF")
         entry = {
             'sender': {
                 'id': recipient_id
@@ -198,7 +194,6 @@ class MessengerBot(OutputChannel):
     #https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
     #The buttons may include icons
     def send_quick_replies(self, recipient_id, text, quick_replies):
-        logger.info("Sending quick replies")
         payload = {
             'text':text,
             'quick_replies': quick_replies
@@ -210,7 +205,6 @@ class MessengerBot(OutputChannel):
     #Send a list template
     #https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
     def send_list_template(self, recipient_id, elements, top_element_style = 'compact'):
-        logger.info("Sending LIST template")
         payload = {
             'attachment': {
                 'type':'template',
@@ -228,7 +222,6 @@ class MessengerBot(OutputChannel):
     #Send a generic template
     #https://developers.facebook.com/docs/messenger-platform/send-messages/template/generic
     def send_generic_template(self, recipient_id, elements):
-        logger.info("Sending GENERIC template")
         payload = {
             'attachment': {
                 'type':'template',
