@@ -264,32 +264,6 @@ class MessengerBot(OutputChannel):
 
     #Send a generic template
     #https://developers.facebook.com/docs/messenger-platform/send-messages/template/generic
-    #Sample usage:
-    """
-        elements = [
-            {
-                'title': 'Title',
-                'image_url': 'http://www.example.com/image.jpg',
-                'subtitle': 'Subtítulo',
-                'default_action': {
-                    'type': 'web_url',
-                    'url': 'http://www.example.com/url',
-                    'webview_height_ratio': 'full'
-                },
-                'buttons':[
-                    {
-                        'type': 'web_url',
-                        'url': 'http://www.example.com/url',
-                        'title': 'Title',
-                        'webview_height_ratio': 'compact'
-                    },
-                    {...}
-                ]
-            },
-            {...}
-        ]
-        dispatcher.utter_send_generic_template(elements)
-    """
     def send_generic_template(self, recipient_id, elements):
         logger.info("Sending GENERIC template")
         payload = {
