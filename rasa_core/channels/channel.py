@@ -95,15 +95,9 @@ class OutputChannel(object):
     def send_quick_replies(self, recipient_id, message, quick_replies):
         self.send_message_with_array(recipient_id, quick_replies)
     
-    def send_list_template(self, recipient_id, attachment):
+    def send_template(self, recipient_id, attachment):
         self.send_message_with_array(recipient_id, attachment)
 
-    def send_generic_template(self, recipient_id, attachment):
-        self.send_message_with_array(recipient_id, attachment)
-
-    def send_typing_on(self, recipient_id, message):
-        self.send_text_message(recipient_id, message)
- 
-    def send_typing_off(self, recipient_id, message):
+    def send_typing(self, recipient_id, message):
         self.send_text_message(recipient_id, message)
  

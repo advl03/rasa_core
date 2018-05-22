@@ -78,16 +78,16 @@ class Dispatcher(object):
 
     def utter_send_quick_replies(self, text, quick_replies):
         self.latest_bot_messages.append(BotMessage(text=text,
-                                                   data={"quick_replies": quick_replies}))
-        self.output_channel.send_quick_replies(self.sender_id, text, quick_replies)
+            data={
+                "quick_replies": quick_replies
+                }))
+        self.output_channel.send_quick_replies(self.sender_id, 
+            text, quick_replies)
 
-    def utter_send_list_template(self, attachment):
-        self.latest_bot_messages.append(BotMessage(text=None, data={"attachment": attachment}))
-        self.output_channel.send_list_template(self.sender_id, attachment)
-
-    def utter_send_generic_template(self, attachment):
-        self.latest_bot_messages.append(BotMessage(text=None, data={"attachment": attachment}))
-        self.output_channel.send_generic_template(self.sender_id, attachment)
+    def utter_send_template(self, attachment):
+        self.latest_bot_messages.append(BotMessage(text=None, 
+            data={"attachment": attachment}))
+        self.output_channel.send_template(self.sender_id, attachment)
 
     def utter_send_typing_on(self):
         self.output_channel.send_typing_on(self.sender_id)

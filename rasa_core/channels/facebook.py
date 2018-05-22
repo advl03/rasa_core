@@ -169,26 +169,16 @@ class MessengerBot(OutputChannel):
                                        {"sender": {"id": recipient_id}},
                                        'RESPONSE')
 
-    #Send typing indication ON
+    #Send typing indication 
+    #on_off parameter can take these two values: 'typing_on' 'typing_off'
     #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
-    def send_typing_on(self, recipient_id):
+    def send_typing(self, recipient_id, on_off):
         entry = {
             'sender': {
                 'id': recipient_id
                 }
         }
-        self.messenger_client.send_action('typing_on', entry)
-        
-
-    #Send typing indication OFF
-    #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
-    def send_typing_off(self, recipient_id):
-        entry = {
-            'sender': {
-                'id': recipient_id
-                }
-        }
-        self.messenger_client.send_action('typing_off', entry)
+        self.messenger_client.send_action(on_off, entry)
 
     #Send a list of buttons for quick replies
     #https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
@@ -252,8 +242,7 @@ class MessengerBot(OutputChannel):
                 }
             }
         }
-        self.messenger_client.send(payload,
-                                   self._recipient_json(recipient_id),
+        self.messenger_client.send(payload,self._recipient_json(recipient_id),
                                    'RESPONSE')
 
     @staticmethod
