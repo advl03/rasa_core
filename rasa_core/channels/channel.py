@@ -88,15 +88,16 @@ class OutputChannel(object):
                     title=element['title'], subtitle=element['subtitle'])
             self.send_text_with_buttons(
                     recipient_id, element_msg, element['buttons'])
-    
+  
     def send_message_with_array(self, recipient_id, elements):
         self.send_text_message(recipient_id, elements)
 
     def send_quick_replies(self, recipient_id, message, quick_replies):
         self.send_message_with_array(recipient_id, quick_replies)
-    
+   
     def send_template(self, recipient_id, attachment):
         self.send_message_with_array(recipient_id, attachment)
 
     def send_typing(self, recipient_id, message):
         self.send_text_message(recipient_id, message)
+        

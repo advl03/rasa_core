@@ -78,18 +78,21 @@ class Dispatcher(object):
 
     def utter_send_quick_replies(self, text, quick_replies):
         self.latest_bot_messages.append(BotMessage(text=text,
-             data={"quick_replies": quick_replies}))
+                                        data={"quick_replies": quick_replies}
+                                        ))
         self.output_channel.send_quick_replies(self.sender_id,
-            text, quick_replies)
+                                               text, 
+                                               quick_replies)
 
     def utter_send_template(self, attachment):
         self.latest_bot_messages.append(BotMessage(text=None,
-             data={"attachment": attachment}))
+                                        data={"attachment": attachment}
+                                        ))
         self.output_channel.send_template(self.sender_id, attachment)
 
     def utter_send_typing(self):
         self.output_channel.send_typing(self.sender_id)
- 
+
     def utter_custom_message(self, *elements):
         # type: (*Dict[Text, Any]) -> None
         """Sends a message with custom elements to the output channel."""

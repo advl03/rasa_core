@@ -169,7 +169,7 @@ class MessengerBot(OutputChannel):
                                        {"sender": {"id": recipient_id}},
                                        'RESPONSE')
 
-    # Send typing indication 
+    # Send typing indication
     # on_off parameter can take these two values: 'typing_on' 'typing_off'
     # https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
     def send_typing(self, recipient_id, on_off):
@@ -185,7 +185,7 @@ class MessengerBot(OutputChannel):
     # The buttons may include icons
     def send_quick_replies(self, recipient_id, text, quick_replies):
         payload = {
-            'text':text,
+            'text': text,
             'quick_replies': quick_replies
         }
         self.messenger_client.send(payload,
@@ -194,12 +194,13 @@ class MessengerBot(OutputChannel):
 
     # Send a list template
     # https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
-    def send_list_template(self, recipient_id, elements, top_element_style = 'compact'):
+    def send_list_template(self, recipient_id, elements, 
+                           top_element_style='compact'):
         payload = {
             'attachment': {
-                'type':'template',
+                'type': 'template',
                 'payload': {
-                    'template_type':'list',
+                    'template_type': 'list',
                     'top_element_style': top_element_style,
                     'elements': elements
                 }
@@ -214,17 +215,15 @@ class MessengerBot(OutputChannel):
     def send_generic_template(self, recipient_id, elements):
         payload = {
             'attachment': {
-                'type':'template',
+                'type': 'template',
                 'payload': {
-                    'template_type':'generic',
+                    'template_type': 'generic',
                     'elements': elements
                 }
             }
         }
-        self.messenger_client.send(payload,self._recipient_json(recipient_id),
+        self.messenger_client.send(payload,self._recipient_json(recipient_id), 
                                    'RESPONSE')
-
-
 
     def send_custom_message(self, recipient_id, elements):
         # type: (Text, List[Dict[Text, Any]]) -> None
@@ -242,7 +241,7 @@ class MessengerBot(OutputChannel):
                 }
             }
         }
-        self.messenger_client.send(payload,self._recipient_json(recipient_id),
+        self.messenger_client.send(payload,self._recipient_json(recipient_id), 
                                    'RESPONSE')
 
     @staticmethod
