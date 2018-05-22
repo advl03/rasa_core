@@ -194,7 +194,7 @@ class MessengerBot(OutputChannel):
 
     # Send a list template
     # https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
-    def send_list_template(self, recipient_id, elements, 
+    def send_list_template(self, recipient_id, elements,
                            top_element_style='compact'):
         payload = {
             'attachment': {
@@ -222,7 +222,7 @@ class MessengerBot(OutputChannel):
                 }
             }
         }
-        self.messenger_client.send(payload,self._recipient_json(recipient_id), 
+        self.messenger_client.send(payload, self._recipient_json(recipient_id),
                                    'RESPONSE')
 
     def send_custom_message(self, recipient_id, elements):
@@ -241,7 +241,7 @@ class MessengerBot(OutputChannel):
                 }
             }
         }
-        self.messenger_client.send(payload,self._recipient_json(recipient_id), 
+        self.messenger_client.send(payload, self._recipient_json(recipient_id),
                                    'RESPONSE')
 
     @staticmethod

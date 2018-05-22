@@ -81,7 +81,7 @@ class Dispatcher(object):
                                         data={"quick_replies": quick_replies}
                                         ))
         self.output_channel.send_quick_replies(self.sender_id,
-                                               text, 
+                                               text,
                                                quick_replies)
 
     def utter_send_template(self, attachment):
