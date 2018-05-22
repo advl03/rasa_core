@@ -100,4 +100,3 @@ class OutputChannel(object):
 
     def send_typing(self, recipient_id, message):
         self.send_text_message(recipient_id, message)
- 

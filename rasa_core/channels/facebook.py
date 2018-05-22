@@ -123,7 +123,7 @@ class MessengerBot(OutputChannel):
                                    {"sender": {"id": recipient_id}},
                                    'RESPONSE')
 
-    #Send text message
+    # Send text message
     def send_text_message(self, recipient_id, message):
         # type: (Text, Text) -> None
         """Send a message through this channel."""
@@ -132,14 +132,14 @@ class MessengerBot(OutputChannel):
 
         self.send(recipient_id, elements.Text(text=message))
 
-    #Send image attachment using its URL
+    # Send image attachment using its URL
     def send_image_url(self, recipient_id, image_url):
         # type: (Text, Text) -> None
         """Sends an image. Default will just post the url as a string."""
 
         self.send(recipient_id, attachments.Image(url=image_url))
 
-    #Send a text message with a list of buttons
+    # Send a text message with a list of buttons
     def send_text_with_buttons(self, recipient_id, text, buttons, **kwargs):
         # type: (Text, Text, List[Dict[Text, Any]], **Any) -> None
         """Sends buttons to the output."""
@@ -169,9 +169,9 @@ class MessengerBot(OutputChannel):
                                        {"sender": {"id": recipient_id}},
                                        'RESPONSE')
 
-    #Send typing indication 
-    #on_off parameter can take these two values: 'typing_on' 'typing_off'
-    #https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
+    # Send typing indication 
+    # on_off parameter can take these two values: 'typing_on' 'typing_off'
+    # https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions
     def send_typing(self, recipient_id, on_off):
         entry = {
             'sender': {
@@ -180,9 +180,9 @@ class MessengerBot(OutputChannel):
         }
         self.messenger_client.send_action(on_off, entry)
 
-    #Send a list of buttons for quick replies
-    #https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-    #The buttons may include icons
+    # Send a list of buttons for quick replies
+    # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
+    # The buttons may include icons
     def send_quick_replies(self, recipient_id, text, quick_replies):
         payload = {
             'text':text,
@@ -192,8 +192,8 @@ class MessengerBot(OutputChannel):
                                    self._recipient_json(recipient_id),
                                    'RESPONSE')
 
-    #Send a list template
-    #https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
+    # Send a list template
+    # https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
     def send_list_template(self, recipient_id, elements, top_element_style = 'compact'):
         payload = {
             'attachment': {
@@ -209,8 +209,8 @@ class MessengerBot(OutputChannel):
                                    self._recipient_json(recipient_id),
                                    'RESPONSE')
 
-    #Send a generic template
-    #https://developers.facebook.com/docs/messenger-platform/send-messages/template/generic
+    # Send a generic template
+    # https://developers.facebook.com/docs/messenger-platform/send-messages/template/generic
     def send_generic_template(self, recipient_id, elements):
         payload = {
             'attachment': {
