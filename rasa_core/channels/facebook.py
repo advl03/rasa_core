@@ -197,25 +197,6 @@ class MessengerBot(OutputChannel):
     #Send a list of buttons for quick replies
     #https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
     #The buttons may include icons
-    #Sample usage:
-    """
-        text = 'Text message'
-        quick_replies = [
-            {
-                'content_type':'text',
-                'title':'Yes',
-                'payload':'<POSTBACK_PAYLOAD>',
-                'image_url':'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Green_sphere.png/120px-Green_sphere.png'
-            },
-            {
-                'content_type':'text',
-                'title':'No',
-                'payload':'<POSTBACK_PAYLOAD>',
-                'image_url':'https://upload.wikimedia.org/wikipedia/commons/a/a5/Red_Dot_X_-_Single_Red_Dot.png'
-            },
-        ]
-        dispatcher.utter_send_quick_replies(text, quick_replies)
-    """
     def send_quick_replies(self, recipient_id, text, quick_replies):
         logger.info("Sending quick replies")
         payload = {
@@ -228,24 +209,6 @@ class MessengerBot(OutputChannel):
 
     #Send a list template
     #https://developers.facebook.com/docs/messenger-platform/send-messages/template/list
-    #Sample usage:
-    """
-        elements = [
-            {
-                "title": "Title",
-                "subtitle": "Subtitle",
-                "image_url": "http://www.example.com/image.jpg",
-                "buttons": [{
-                    "type": "web_url",
-                    "url": "http://www.example.com/url",
-                    "title": "Ver ahora",
-                    "webview_height_ratio": "full"
-                }]
-		    },
-            ...
-        ]
-        dispatcher.utter_send_list_template(elements)   
-    """
     def send_list_template(self, recipient_id, elements, top_element_style = 'compact'):
         logger.info("Sending LIST template")
         payload = {
