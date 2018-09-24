@@ -34,12 +34,19 @@ class Slot(object):
         """After how many turns the slot should be reset to the initial_value.
 
         If the delay is set to `None`, the slot will keep its value forever."""
-        # TODO: this needs to be implemented - slots are not reset yet
+        # TODO: FUTURE this needs to be implemented - slots are not reset yet
         return self._value_reset_delay
 
     def as_feature(self):
         raise NotImplementedError("Each slot type needs to specify how its "
-                                  "value can be converted to a feature.")
+                                  "value can be converted to a feature. Slot "
+                                  "'{}' is a generic slot that can not be used "
+                                  "for predictions. Make sure you add this "
+                                  "slot to your domain definition, specifying "
+                                  "the type of the slot. If you implemented "
+                                  "a custom slot type class, make sure to "
+                                  "implement `.as_feature()`."
+                                  "".format(self.name))
 
     def reset(self):
         self.value = self.initial_value
@@ -95,10 +102,10 @@ class FloatSlot(Slot):
 
         if (initial_value is not None and
                 not (min_value <= initial_value <= max_value)):
-            logger.warn("Float slot ('{}') created with an initial value {}"
-                        "outside of configured min ({}) and max ({}) values."
-                        "".format(self.name, self.value, self.min_value,
-                                  self.max_value))
+            logger.warning("Float slot ('{}') created with an initial value {}"
+                           "outside of configured min ({}) and max ({}) values."
+                           "".format(self.name, self.value, self.min_value,
+                                     self.max_value))
 
     def as_feature(self):
         try:
@@ -125,12 +132,15 @@ class BooleanSlot(Slot):
     def as_feature(self):
         try:
             if self.value is not None:
-                return [float(float(self.value) != 0.0)]
+                return [1.0, float(float(self.value) != 0.0)]
             else:
-                return [0.0]
+                return [0.0, 0.0]
         except (TypeError, ValueError):
             # we couldn't convert the value to float - using default value
-            return [0.0]
+            return [0.0, 0.0]
+
+    def feature_dimensionality(self):
+        return len(self.as_feature())
 
 
 class TextSlot(Slot):
@@ -191,11 +201,11 @@ class CategoricalSlot(Slot):
                     break
             else:
                 if self.value is not None:
-                    logger.warn(
+                    logger.warning(
                             "Categorical slot '{}' is set to a value ('{}') "
                             "that is not specified in the domain. "
                             "Value will be ignored and the slot will "
-                            "behave as if it no value is set. "
+                            "behave as if no value is set. "
                             "Make sure to add all values a categorical "
                             "slot should store to the domain."
                             "".format(self.name, self.value))

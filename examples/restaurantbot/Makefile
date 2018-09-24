@@ -1,7 +1,23 @@
+help:
+	@echo "    train-nlu"
+	@echo "        Train the natural language understanding using Rasa NLU."
+	@echo "    train-core"
+	@echo "        Train a dialogue model using Rasa core."
+	@echo "    run"
+	@echo "        Runs the bot on the command line."
 
 run:
-	python -m rasa_core.run -d models/policy/current -u models/nlu/current
+	make run-actions&
+	make run-core
+
+run-actions:
+	python -m rasa_core_sdk.endpoint --actions actions
+
+run-core:
+	python -m rasa_core.run --nlu models/nlu/default/current --core models/dialogue --endpoints endpoints.yml
 
 train-nlu:
-	python -m rasa_nlu.train -c nlu_model_config.yml --fixed_model_name current \
-		   --data ./data/franken_data.json --path ./models/nlu
+	python bot.py train-nlu
+
+train-core:
+	python bot.py train-dialogue

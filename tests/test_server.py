@@ -4,21 +4,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import json
-import uuid
 from builtins import str
 
+import json
 import pytest
+import uuid
 from freezegun import freeze_time
-from treq.testing import StubTreq
 
 import rasa_core
-from rasa_core.agent import Agent
-from rasa_core.events import UserUttered, BotUttered, SlotSet, TopicSet, Event
-from rasa_core.interpreter import RegexInterpreter
-from rasa_core.policies.scoring_policy import ScoringPolicy
-from rasa_core.server import RasaCoreServer
-from tests.conftest import DEFAULT_STORIES_FILE
+from rasa_core import events, constants
+from rasa_core.actions.action import ACTION_LISTEN_NAME
+from rasa_core.domain import Domain
+from rasa_core.events import (
+    UserUttered, BotUttered, SlotSet, Event, ActionExecuted)
+from rasa_core.remote import RasaCoreClient
+from rasa_core.utils import EndpointConfig
 
 # a couple of event instances that we can use for testing
 test_events = [
@@ -30,7 +30,6 @@ test_events = [
                                "entities": []}
                            }),
     BotUttered("Welcome!", {"test": True}),
-    TopicSet("question"),
     SlotSet("cuisine", 34),
     SlotSet("cuisine", "34"),
     SlotSet("location", None),
@@ -40,45 +39,48 @@ test_events = [
 
 @pytest.fixture(scope="module")
 def app(core_server):
-    """This fixture makes use of the IResource interface of the
-    Klein application to mock Rasa Core server."""
-    return StubTreq(core_server.app.resource())
+    return core_server.test_client()
 
 
 @pytest.fixture(scope="module")
-def core_server(tmpdir_factory):
-    model_path = tmpdir_factory.mktemp("model").strpath
-
-    agent = Agent("data/test_domains/default_with_topic.yml",
-                  policies=[ScoringPolicy()])
-
-    agent.train(DEFAULT_STORIES_FILE, max_history=3)
-    agent.persist(model_path)
-
-    return RasaCoreServer(model_path, interpreter=RegexInterpreter())
+def secured_app(core_server_secured):
+    return core_server_secured.test_client()
 
 
-@pytest.inlineCallbacks
 def test_root(app):
-    response = yield app.get("http://dummy/")
-    content = yield response.text()
-    assert response.code == 200 and content.startswith("hello")
+    response = app.get("http://dummy/")
+    content = response.get_data(as_text=True)
+    assert response.status_code == 200 and content.startswith("hello")
 
 
-@pytest.inlineCallbacks
+def test_root_secured(secured_app):
+    response = secured_app.get("http://dummy/")
+    content = response.get_data(as_text=True)
+    assert response.status_code == 200 and content.startswith("hello")
+
+
 def test_version(app):
-    response = yield app.get("http://dummy/version")
-    content = yield response.json()
-    assert response.code == 200
+    response = app.get("http://dummy/version")
+    content = response.get_json()
+    assert response.status_code == 200
     assert content.get("version") == rasa_core.__version__
+    assert (content.get(
+        "minimum_compatible_version") == constants.MINIMUM_COMPATIBLE_VERSION)
+
+
+def test_status(app):
+    response = app.get("http://dummy/status")
+    content = response.get_json()
+    assert response.status_code == 200
+    assert content.get("is_ready")
+    assert content.get("model_fingerprint") is not None
 
 
 @freeze_time("2018-01-01")
-@pytest.inlineCallbacks
 def test_requesting_non_existent_tracker(app):
-    response = yield app.get("http://dummy/conversations/madeupid/tracker")
-    content = yield response.json()
-    assert response.code == 200
+    response = app.get("http://dummy/conversations/madeupid/tracker")
+    content = response.get_json()
+    assert response.status_code == 200
     assert content["paused"] is False
     assert content["slots"] == {"location": None, "cuisine": None}
     assert content["sender_id"] == "madeupid"
@@ -90,122 +92,156 @@ def test_requesting_non_existent_tracker(app):
                                          "entities": []}
 
 
-@pytest.inlineCallbacks
-def test_continue_on_non_existent_conversation(app):
-    data = json.dumps({"events": [], "executed_action": None})
-    response = yield app.post("http://dummy/conversations/myid/continue",
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
-    assert content["next_action"] == "action_listen"
-    assert content["tracker"]["events"] is None
-    assert content["tracker"]["paused"] is False
-    assert content["tracker"]["sender_id"] == "myid"
-    assert content["tracker"]["slots"] == {"location": None, "cuisine": None}
-    assert content["tracker"]["latest_message"] == {"text": None,
-                                                    "intent": {},
-                                                    "entities": []}
-
-
-@pytest.inlineCallbacks
-def test_parse(app):
+def test_respond(app):
     data = json.dumps({"query": "/greet"})
-    response = yield app.post("http://dummy/conversations/myid/parse",
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
-    assert content["next_action"] == "utter_greet"
-    assert content["tracker"]["events"] is None
-    assert content["tracker"]["paused"] is False
-    assert content["tracker"]["sender_id"] == "myid"
-    assert content["tracker"]["slots"] == {"location": None, "cuisine": None}
-    assert content["tracker"]["latest_message"]["text"] == "/greet"
-    assert content["tracker"]["latest_message"]["intent"] == {
-        "confidence": 1.0,
-        "name": "greet"}
-
-
-@pytest.inlineCallbacks
-def test_continue(app):
-    data = json.dumps({"query": "/greet"})
-    response = yield app.post("http://dummy/conversations/myid/parse",
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
-
-    data = json.dumps({"events": [], "executed_action": "utter_greet"})
-    response = yield app.post("http://dummy/conversations/myid/continue",
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
-
-    assert content["next_action"] == "action_listen"
-    assert content["tracker"]["events"] is None
-    assert content["tracker"]["paused"] is False
-    assert content["tracker"]["sender_id"] == "myid"
-    assert content["tracker"]["slots"] == {"location": None, "cuisine": None}
-    assert content["tracker"]["latest_message"]["text"] == "/greet"
-    assert content["tracker"]["latest_message"]["intent"] == {
-        "confidence": 1.0,
-        "name": "greet"}
+    response = app.post("http://dummy/conversations/myid/respond",
+                        data=data, content_type='application/json')
+    content = response.get_json()
+    assert response.status_code == 200
+    assert content == [{'text': 'hey there!', 'recipient_id': 'myid'}]
 
 
 @pytest.mark.parametrize("event", test_events)
-@pytest.inlineCallbacks
-def test_pushing_events(core_server, app, event):
+def test_pushing_event(app, event):
     cid = str(uuid.uuid1())
     conversation = "http://dummy/conversations/{}".format(cid)
     data = json.dumps({"query": "/greet"})
-    response = yield app.post("{}/parse".format(conversation),
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
+    response = app.post("{}/respond".format(conversation),
+                        data=data, content_type='application/json')
+    content = response.get_json()
+    assert response.status_code == 200
 
-    data = json.dumps({"events": [], "executed_action": "utter_greet"})
-    response = yield app.post("{}/continue".format(conversation),
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
+    data = json.dumps(event.as_dict())
+    response = app.post("{}/tracker/events".format(conversation),
+                        data=data, content_type='application/json')
+    content = response.get_json()
+    assert response.status_code == 200
 
-    data = json.dumps([event.as_dict()])
-    response = yield app.post("{}/tracker/events".format(conversation),
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
-
-    tracker = core_server.agent.tracker_store.retrieve(cid)
+    tracker_response = app.get("http://dummy/conversations/{}/tracker"
+                               "".format(cid))
+    tracker = tracker_response.get_json()
     assert tracker is not None
-    assert len(tracker.events) == 5
-    assert tracker.events[4] == event
+    assert len(tracker.get("events")) == 6
+
+    evt = tracker.get("events")[5]
+    assert Event.from_parameters(evt) == event
 
 
-@pytest.inlineCallbacks
-def test_put_tracker(core_server, app):
+def test_put_tracker(app):
     data = json.dumps([event.as_dict() for event in test_events])
-    response = yield app.put("http://dummy/conversations/pushtracker/tracker",
-                             data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
+    response = app.put("http://dummy/conversations/pushtracker/tracker/events",
+                       data=data, content_type='application/json')
+    content = response.get_json()
+    assert response.status_code == 200
     assert len(content["events"]) == len(test_events)
     assert content["sender_id"] == "pushtracker"
 
-    tracker = core_server.agent.tracker_store.retrieve("pushtracker")
+    tracker_response = app.get("http://dummy/conversations/pushtracker/tracker")
+    tracker = tracker_response.get_json()
     assert tracker is not None
-    assert len(tracker.events) == len(test_events)
-    assert list(tracker.events) == test_events
+    evts = tracker.get("events")
+    assert events.deserialise_events(evts) == test_events
 
 
-@pytest.inlineCallbacks
 def test_list_conversations(app):
     data = json.dumps({"query": "/greet"})
-    response = yield app.post("http://dummy/conversations/myid/parse",
-                              data=data, content_type='application/json')
-    content = yield response.json()
-    assert response.code == 200
+    response = app.post("http://dummy/conversations/myid/respond",
+                        data=data, content_type='application/json')
+    content = response.get_json()
+    assert response.status_code == 200
 
-    response = yield app.get("http://dummy/conversations")
-    content = yield response.json()
-    assert response.code == 200
+    response = app.get("http://dummy/conversations")
+    content = response.get_json()
+    assert response.status_code == 200
 
     assert len(content) > 0
     assert "myid" in content
+
+
+def test_remote_status(http_app):
+    client = RasaCoreClient(EndpointConfig(http_app))
+
+    status = client.status()
+
+    assert status.get("version") == rasa_core.__version__
+
+
+def test_remote_clients(http_app):
+    client = RasaCoreClient(EndpointConfig(http_app))
+
+    cid = str(uuid.uuid1())
+    client.respond("/greet", cid)
+
+    clients = client.clients()
+
+    assert cid in clients
+
+
+@pytest.mark.parametrize("event", test_events)
+def test_remote_append_events(http_app, event):
+    client = RasaCoreClient(EndpointConfig(http_app))
+
+    cid = str(uuid.uuid1())
+
+    client.append_event_to_tracker(cid, event)
+
+    tracker = client.tracker_json(cid)
+
+    evts = tracker.get("events")
+    expected = [ActionExecuted(ACTION_LISTEN_NAME), event]
+    assert events.deserialise_events(evts) == expected
+
+
+def test_predict(http_app, app):
+    client = RasaCoreClient(EndpointConfig(http_app))
+    cid = str(uuid.uuid1())
+    for event in test_events[:2]:
+        client.append_event_to_tracker(cid, event)
+    out = app.get('/domain', headers={'Accept': 'yml'})
+    domain = Domain.from_yaml(out.get_data())
+    tracker = client.tracker(cid, domain)
+    event_dicts = [ev.as_dict() for ev in tracker.applied_events()]
+    response = app.post('/predict',
+                        json=event_dicts)
+    assert response.status_code == 200
+
+
+def test_list_conversations_with_jwt(secured_app):
+    # token generated with secret "core" and algorithm HS256
+    # on https://jwt.io/
+    jwt_header = {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ"
+                         "zdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIi"
+                         "wiaWF0IjoxNTE2MjM5MDIyfQ.qEJb6l_PyWk7lnVTHxCSPt"
+                         "8R6fvjd7bfISPR1yIF8Fg"
+    }
+    response = secured_app.get("/conversations",
+                               headers=jwt_header)
+    assert response.status_code == 200
+
+
+def test_list_conversations_with_token(secured_app):
+    response = secured_app.get("/conversations?token=rasa")
+    assert response.status_code == 200
+
+
+def test_list_conversations_with_wrong_token(secured_app):
+    response = secured_app.get("/conversations?token=Rasa")
+    assert response.status_code == 401
+
+
+def test_list_conversations_without_auth(secured_app):
+    response = secured_app.get("/conversations")
+    assert response.status_code == 401
+
+
+def test_list_conversations_with_wrong_jwt(secured_app):
+    jwt_header = {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ"
+                         "zdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIi"
+                         "wiaWF0IjoxNTE2MjM5MDIyfQ.qdrr2_a7Sd80gmCWjnDomO"
+                         "Gl8eZFVfKXA6jhncgRn-I"
+    }
+    response = secured_app.get("/conversations",
+                               headers=jwt_header)
+    assert response.status_code == 422

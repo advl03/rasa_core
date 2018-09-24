@@ -3,6 +3,13 @@ intents:
  - greet
  - default
  - goodbye
+ - affirm
+ - thank_you
+ - change_bank_details
+ - simple
+ - hello
+ - why
+ - next_intent
 
 entities:
  - name
@@ -13,10 +20,10 @@ slots:
 
 templates:
   utter_greet:
-    - "hey there {name}!"    # variable will be filled by slot with the same name or by custom code
+    - "hey there {name}!"  # {name} will be filled by slot (same name) or by custom action code
   utter_goodbye:
-    - "goodbye :("
-    - "bye bye"              # multiple templates will allow the bot to randomly pick from them
+    - "goodbye 😢"
+    - "bye bye 😢"   # multiple templates - bot will randomly pick one of them
   utter_default:
     - "default message"
 

@@ -7,17 +7,20 @@ from __future__ import unicode_literals
 import logging
 
 from flask import Blueprint, request, jsonify
-
 from twilio.rest import Client
 
+from rasa_core.channels import InputChannel
 from rasa_core.channels import UserMessage, OutputChannel
-from rasa_core.channels.rest import HttpInputComponent
 
 logger = logging.getLogger(__name__)
 
 
 class TwilioOutput(Client, OutputChannel):
     """Output channel for Twilio"""
+
+    @classmethod
+    def name(cls):
+        return "twilio"
 
     def __init__(self, account_sid, auth_token, twilio_number):
         super(TwilioOutput, self).__init__(account_sid, auth_token)
@@ -27,7 +30,13 @@ class TwilioOutput(Client, OutputChannel):
 
     def send_text_message(self, recipient_number, text):
         """Sends text message"""
+
+        for message_part in text.split("\n\n"):
+            self._send_text(recipient_number, message_part)
+
+    def _send_text(self, recipient_number, text):
         from twilio.base.exceptions import TwilioRestException
+
         message = None
         try:
             while not message and self.send_retry < self.max_retry:
@@ -50,10 +59,24 @@ class TwilioOutput(Client, OutputChannel):
         pass
 
 
-class TwilioInput(HttpInputComponent):
+class TwilioInput(InputChannel):
     """Twilio input channel"""
 
-    def __init__(self, account_sid, auth_token, twilio_number, debug_mode=True):
+    @classmethod
+    def name(cls):
+        return "twilio"
+
+    @classmethod
+    def from_credentials(cls, credentials):
+        if not credentials:
+            cls.raise_missing_credentials_exception()
+
+        return cls(credentials.get("account_sid"),
+                   credentials.get("auth_token"),
+                   credentials.get("twilio_number"))
+
+    def __init__(self, account_sid, auth_token, twilio_number,
+                 debug_mode=True):
         self.account_sid = account_sid
         self.auth_token = auth_token
         self.twilio_number = twilio_number
@@ -78,7 +101,8 @@ class TwilioInput(HttpInputComponent):
                 try:
                     # @ signs get corrupted in SMSes by some carriers
                     text = text.replace('¡', '@')
-                    on_new_message(UserMessage(text, out_channel, sender))
+                    on_new_message(UserMessage(text, out_channel, sender,
+                                               input_channel=self.name()))
                 except Exception as e:
                     logger.error("Exception when trying to handle "
                                  "message.{0}".format(e))
@@ -90,4 +114,5 @@ class TwilioInput(HttpInputComponent):
                 logger.debug("Invalid message")
 
             return "success"
+
         return twilio_webhook

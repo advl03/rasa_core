@@ -4,10 +4,299 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to `Semantic Versioning`_ starting with version 0.2.0.
 
-[Unreleased 0.9.0.aX] - `master`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _master-release:
+
+[Unreleased 0.12.0.aX] - `master`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note:: This version is not yet released and is under active development.
+
+Added
+-----
+- custom message method in rocketchat channel
+
+
+Changed
+-------
+
+
+Removed
+-------
+
+
+Fixed
+-----
+- wrong paramter name in rocketchat channel methods
+- fixed an issue with boolean slots where False and None had the same value
+  (breaking model compatibility with models that use a boolean slot)
+- Software 2.0 link on interactive learning documentation page went to Tesla's homepage, now it links to Karpathy
+  blogpost
+
+[0.11.4] - 2018-09-19
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- a flag ``--fail_on_prediction_errors`` to the ``evaluate.py`` script -
+  if used when running the evaluation, the script will fail with a non
+  0 exit code if there is at least one prediction error. This can be
+  used on CIs to validate models against test stories.
+- JWT support: parameters to allow clients to authenticate requests to
+  the rasa_core.server using JWT's in addition to normal token based auth
+- added socket.io input / output channel
+- ``UserMessage`` and ``UserUttered`` classes have a new attribute
+  ``input_channel`` that stores the name of the ``InputChannel``
+  through which the message was received
+
+Changed
+-------
+- dump failed stories after evaluation in the normal story format instead of
+  as a text file
+- do not run actions during evaluation. instead, action are only predicted
+  and validated against the gold story.
+- improved the online learning experience on the CLI
+- made finetuning during online learning optional (use ``--finetune`` if
+  you want to enable it)
+
+Removed
+-------
+- package pytest-services since it wasn't necessary
+
+Fixed
+-----
+- fixed an issue with the followup (there was a name confusion, sometimes
+  the followup action would be set to the non existent ``follow_up_action``
+  attribute instead of ``followup_action``)
+
+[0.11.3] - 2018-09-04
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- callback output channel, receives messages and uses a REST endpoint to
+  respond with messages
+
+Changed
+-------
+- channel input creation moved to the channel, every channel can now
+  customize how it gets created from the credentials file
+
+[0.11.2] - 2018-09-04
+^^^^^^^^^^^^^^^^^^^^^
+
+Changed
+-------
+- improved documentation for events (e.g. including json serialisation)
+
+Removed
+-------
+- outdated documentation for removed endpoints in the server
+  (``/parse`` & ``/continue``)
+
+Fixed
+-----
+- read in fallback command line args
+
+[0.11.1] - 2018-08-30
+^^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- increased minimal compatible model version to 0.11.0
+
+.. _v0-11-0:
+
+[0.11.0] - 2018-08-30
+^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+    This is major new version with a lot of changes under the hood as well
+    as on the API level. Please take a careful look at the
+    :ref:`migration` guide before updating. You need to retrain your models.
+
+
+Added
+-----
+- added microsoft botframework input and output channels
+- added rocket chat input and output channels
+- script parameter ``--quiet`` to set the log level to ``WARNING``
+- information about the python version a model has been trained with to the
+  model metadata
+- more emoji support for PY2
+- intent confidence support in RegexInterpreter
+- added paramter to train script to pull training data from an url instead
+  of a stories file
+- added new policy: :ref:`embedding_policy` implemented in tensorflow
+
+Changed
+-------
+- default log level for all scripts has been changed from ``WARNING`` to
+  ``INFO``.
+- format of the credentials file to allow specifying the credentials for
+  multiple channels
+- webhook URLs for the input channels have changed and need to be reset
+- deprecated using ``rasa_core.server`` as a script - use
+  ``rasa_core.run --enable_api`` instead
+- collecting output channel will no properly collect events for images,
+  buttons, and attachments
+
+Removed
+-------
+- removed the deprecated ``TopicSet`` event
+- removed ``tracker.follow_up_action`` - use the ``FollowupAction``
+  event instead
+- removed ``action_factory: remote`` from domain file - the domain is
+  always run over http
+- removed ``OnlineLearningPolicy`` - use the ``training.online``
+  script instead
+
+Fixed
+-------
+- lots of type annotations
+- some invalid documentation references
+- changed all ``logger.warn`` to ``logger.warning``
+
+[0.10.4] - 2018-08-08
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- more emoji support for PY2
+- intent confidence support in RegexInterpreter
+
+[0.10.3] - 2018-08-03
+^^^^^^^^^^^^^^^^^^^^^
+
+Changed
+-------
+- updated to Rasa NLU 0.13
+- improved documentation quickstart
+
+Fixed
+-----
+- server request argument handling on python 3
+- creation of training data story graph - removes more nodes and speeds up
+  the training
+
+[0.10.2] - 2018-07-24
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- new ``RasaChatInput`` channel
+- option to ignore entities for certain intents
+
+Fixed
+-----
+- loading of NLU model
+
+[0.10.1] - 2018-07-18
+^^^^^^^^^^^^^^^^^^^^^
+
+Changed
+-------
+
+- documentation changes
+
+.. _v0-10-0:
+
+[0.10.0] - 2018-07-17
+^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+    This is a major new release with backward incompatible changes. Old trained
+    models can not be read with the new version - you need to retrain your model.
+    View the :ref:`migration` for details.
+
+Added
+-----
+- allow bot responses to be managed externally (instead of putting them into
+  the ``domain.yml``)
+- options to prevent slack from making re-deliver message upon meeting failure condition.
+  the default is to ignore ``http_timeout``.
+- added ability to create domain from yaml string and export a domain to a yaml string
+- added server endpoint to fetch domain as json or yaml
+- new default action ActionDefaultFallback
+- event streaming to a ``RabbitMQ`` message broker using ``Pika``
+- docs section on event brokers
+- ``Agent()`` class supports a ``model_server`` ``EndpointConfig``, which it regularly queries to fetch dialogue models
+- this can be used with ``rasa_core.server`` with the ``--endpoint`` option (the key for this the model server config is ``model``)
+- docs on model fetching from a URL
+
+Changed
+-------
+- changed the logic inside AugmentedMemoizationPolicy to recall actions only if they are the same in training stories
+- moved AugmentedMemoizationPolicy to memoization.py
+- wrapped initialization of BackgroundScheduler in try/except to allow running on jupyterhub / binderhub/ colaboratory
+- fixed order of events logged on a tracker: action executed is now always
+  logged before bot utterances that action created
+
+Removed
+-------
+- removed support for topics
+
+[0.9.6] - 2018-06-18
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- fixed fallback policy data generation
+
+[0.9.5] - 2018-06-14
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- handling of max history configuration in policies
+- fixed instantiation issues of fallback policy
+
+[0.9.4] - 2018-06-07
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- fixed evaluation script
+- fixed story file loading (previously some story files with checkpoints could
+  create wrong training data)
+- improved speed of data loading
+
+[0.9.3] - 2018-05-30
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- added token auth to all endpoints of the core server
+
+
+[0.9.2] - 2018-05-30
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- fix handling of max_history parameter in AugmentedMemoizationPolicy
+
+[0.9.1] - 2018-05-29
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- persistence of training data collected during online learning if default
+  file path is used
+- the ``agent()`` method used in some ``rasa_core.server`` endpoints is
+  re-run at every new call of the ``ensure_loaded_agent`` decorator
+- fixed OR usage of intents
+
+.. _v0-9-0:
+
+[0.9.0] - 2018-05-24
+^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+    This is a major new release with backward incompatible changes. Old trained
+    models can not be read with the new version - you need to retrain your model.
 
 Added
 -----
@@ -20,18 +309,51 @@ Added
 - added a Twilio channel that allows Rasa Core to communicate via SMS
 - ``FallbackPolicy`` for executing a default message if NLU or core model confidence is low.
 - ``FormAction`` class to make it easier to collect multiple pieces of information with fewer stories.
+- Dockerfile for ``rasa_core.server`` with a dialogue and Rasa NLU model
 
 Changed
 -------
+- moved server from klein to flask
 - updated dependency fbmessenger from 4.3.1 to 5.0.0
 - updated Rasa NLU to 0.12.x
-
-Removed
--------
+- updated all the dependencies to the latest versions
 
 Fixed
 -----
+- List slot is now populated with a list
 - Slack connector: ``slack_channel`` kwarg is used to send messages either back to the user or to a static channel
+- properly log to a file when using the ``run`` script
+- documentation fix on stories
+
+
+[0.8.6] - 2018-04-18
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- pin rasa nlu version to 0.11.4 (0.12.x only works with master)
+
+[0.8.5] - 2018-03-19
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- updated google analytics docs survey code
+
+
+[0.8.4] - 2018-03-14
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- pin ``pykwalify<=1.6.0`` as update to ``1.6.1`` breaks compatibility
+
+[0.8.3] - 2018-02-28
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- pin ``fbmessenger`` version to avoid major update
 
 [0.8.2] - 2018-02-13
 ^^^^^^^^^^^^^^^^^^^^
@@ -57,6 +379,8 @@ Fixed
 - removed deque to support python 3.5
 - Documentation improvements to tutorials
 - serialisation of date time value for ``ReminderScheduled`` event
+
+.. _v0-8-0:
 
 [0.8.0] - 2018-01-30
 ^^^^^^^^^^^^^^^^^^^^
@@ -200,6 +524,8 @@ Fixed
   wrong predictions
 
 
+.. _v0-7-0:
+
 [0.7.0] - 2017-10-04
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -214,9 +540,11 @@ Changed
 - renamed ``rasa_dm.util`` to ``rasa_dm.utils``
 - renamed the whole package to ``rasa_core`` (so ``rasa_dm`` is gone!)
 - renamed ``Reminder`` attribute ``id`` to ``name``
-- a lot of documentation improvements. docs are now at https://core.rasa.ai
+- a lot of documentation improvements. docs are now at https://rasa.com/docs/core
 - use hashing when writing memorized turns into persistence - requires retraining of all models that are trained with a version prior to this
 - changed ``agent.handle_message(...)`` interface for easier usage
+
+.. _v0-6-0:
 
 [0.6.0] - 2017-08-27
 ^^^^^^^^^^^^^^^^^^^^
@@ -231,6 +559,8 @@ Added
 Changed
 -------
 - large refactoring of code base
+
+.. _v0-5-0:
 
 [0.5.0] - 2017-06-18
 ^^^^^^^^^^^^^^^^^^^^
@@ -254,6 +584,8 @@ Fixed
 - ``RegexInterpreter`` checks if the regex actually matches the message instead of assuming it always does
 - ``str`` implementation for all events
 - ``Controller`` can be started without an input channel (e.g. messages need to be fed into the queue manually)
+
+.. _v0-2-0:
 
 [0.2.0] - 2017-05-18
 ^^^^^^^^^^^^^^^^^^^^
