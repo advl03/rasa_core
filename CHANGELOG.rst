@@ -14,6 +14,7 @@ This project adheres to `Semantic Versioning`_ starting with version 0.2.0.
 Added
 -----
 - custom message method in rocketchat channel
+- new message types for Facebook channel: quick replies, generic template, list template, typing on/off
 
 
 Changed
