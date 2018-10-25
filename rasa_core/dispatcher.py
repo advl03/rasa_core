@@ -85,6 +85,14 @@ class Dispatcher(object):
                                         ))
         self.output_channel.send_template(self.sender_id, attachment)
 
+    def utter_send_list_template(self, attachment):
+        self.latest_bot_messages.append(BotMessage(text=None, data={"attachment": attachment}))
+        self.output_channel.send_list_template(self.sender_id, attachment)
+        
+    def utter_send_generic_template(self, attachment, meta= None, square=False):
+        self.latest_bot_messages.append(BotMessage(text=None, data={"attachment": attachment}))
+        self.output_channel.send_generic_template(self.sender_id, attachment, meta,square)
+
     def utter_send_typing(self):
         self.output_channel.send_typing(self.sender_id)
 
