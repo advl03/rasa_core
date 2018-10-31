@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import inspect
 import json
 from multiprocessing import Queue
 from threading import Thread
@@ -43,7 +44,7 @@ class UserMessage(object):
             self.output_channel = CollectingOutputChannel()
 
         if sender_id is not None:
-            self.sender_id = sender_id
+            self.sender_id = str(sender_id)
         else:
             self.sender_id = self.DEFAULT_SENDER_ID
 
@@ -323,7 +324,9 @@ class RestInput(InputChannel):
                 yield json.dumps(response) + "\n"
 
     def blueprint(self, on_new_message):
-        custom_webhook = Blueprint('custom_webhook', __name__)
+        custom_webhook = Blueprint(
+                'custom_webhook_{}'.format(type(self).__name__),
+                inspect.getmodule(self).__name__)
 
         @custom_webhook.route("/", methods=['GET'])
         def health():

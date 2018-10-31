@@ -35,7 +35,7 @@ def test_can_read_test_story(default_domain):
     assert tracker.events[1] == UserUttered(
             "simple",
             intent={"name": "simple", "confidence": 1.0},
-            parse_data={'text': 'simple',
+            parse_data={'text': '/simple',
                         'intent_ranking': [{'confidence': 1.0,
                                             'name': 'simple'}],
                         'intent': {'confidence': 1.0, 'name': 'simple'},
@@ -61,7 +61,7 @@ def test_persist_and_read_test_story_graph(tmpdir, default_domain):
     graph = training.extract_story_graph("data/test_stories/stories.md",
                                          default_domain)
     out_path = tmpdir.join("persisted_story.md")
-    with io.open(out_path.strpath, "w") as f:
+    with io.open(out_path.strpath, "w", encoding="utf-8") as f:
         f.write(graph.as_story_string())
 
     recovered_trackers = training.load_data(
@@ -157,7 +157,7 @@ def test_visualize_training_data_graph(tmpdir, default_domain):
 
     graph = graph.with_cycles_removed()
 
-    out_path = tmpdir.join("graph.png").strpath
+    out_path = tmpdir.join("graph.html").strpath
 
     # this will be the plotted networkx graph
     G = graph.visualize(out_path)

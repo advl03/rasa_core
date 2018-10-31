@@ -4,8 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-from builtins import str
 import os
+from builtins import str
 
 import matplotlib
 import pytest
@@ -18,9 +18,9 @@ from rasa_core.dispatcher import Dispatcher
 from rasa_core.domain import Domain
 from rasa_core.interpreter import RegexInterpreter
 from rasa_core.nlg import TemplatedNaturalLanguageGenerator
-from rasa_core.policies.ensemble import SimplePolicyEnsemble
+from rasa_core.policies.ensemble import SimplePolicyEnsemble, PolicyEnsemble
 from rasa_core.policies.memoization import (
-    MemoizationPolicy, AugmentedMemoizationPolicy)
+    Policy, MemoizationPolicy, AugmentedMemoizationPolicy)
 from rasa_core.processor import MessageProcessor
 from rasa_core.slots import Slot
 from rasa_core.tracker_store import InMemoryTrackerStore
@@ -35,6 +35,8 @@ DEFAULT_DOMAIN_PATH = "data/test_domains/default_with_slots.yml"
 
 DEFAULT_STORIES_FILE = "data/test_stories/stories_defaultdomain.md"
 
+END_TO_END_STORY_FILE = "data/test_evaluations/end_to_end_story.md"
+
 MOODBOT_MODEL_PATH = "examples/moodbot/models/dialogue"
 
 DEFAULT_ENDPOINTS_FILE = "data/example_endpoints.yml"
@@ -43,6 +45,12 @@ DEFAULT_ENDPOINTS_FILE = "data/example_endpoints.yml"
 class CustomSlot(Slot):
     def as_feature(self):
         return [0.5]
+
+
+class ExamplePolicy(Policy):
+
+    def __init__(self, example_arg):
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -114,6 +122,17 @@ def zipped_moodbot_model():
     zip_path = zip_folder(MOODBOT_MODEL_PATH)
 
     return zip_path
+
+
+@pytest.fixture(scope="session")
+def moodbot_domain():
+    domain_path = os.path.join(MOODBOT_MODEL_PATH, 'domain.yml')
+    return Domain.load(domain_path)
+
+
+@pytest.fixture(scope="session")
+def moodbot_metadata():
+    return PolicyEnsemble.load_metadata(MOODBOT_MODEL_PATH)
 
 
 @pytest.fixture(scope="module")

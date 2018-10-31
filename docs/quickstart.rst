@@ -63,7 +63,7 @@ may take a few seconds to start up. If you are running locally,
 copy the text between the triple quotes (``"""``)
 and save it in a file called ``stories.md``.
 
-.. runnable:: 
+.. runnable::
    :description: core-write-stories
 
    stories_md = """
@@ -109,7 +109,7 @@ The domain defines the universe your bot lives in.
 Here is an example domain for our bot which we'll write to a
 file called ``domain.yml``:
 
-.. runnable:: 
+.. runnable::
    :description: core-write-domain
 
    domain_yml = """
@@ -231,7 +231,7 @@ If you are running the cells here in the docs, run this cell:
    :description: core-chat-without-nlu
 
    import IPython
-   from IPython.display import clear_output
+   from IPython.display import clear_output, HTML, display
    from rasa_core.agent import Agent
    import time
 
@@ -246,7 +246,7 @@ If you are running the cells here in the docs, run this cell:
 
    while True:
        clear_output()
-       display(IPython.display.HTML(chatlogs_html(messages)))
+       display(HTML(chatlogs_html(messages)))
        time.sleep(0.3)
        a = input()
        messages.append(a)
@@ -388,12 +388,14 @@ If you are running the cells here in the docs, run this cell:
    :description: core-chat-with-nlu
 
    import IPython
-   from IPython.display import clear_output
+   from IPython.display import clear_output, HTML, display
    from rasa_core.agent import Agent
+   from rasa_core.interpreter import RasaNLUInterpreter
    import time
 
+   interpreter = RasaNLUInterpreter('models/current/nlu')
    messages = ["Hi! you can chat in this window. Type 'stop' to end the conversation."]
-   agent = Agent.load('models/dialogue', interpreter='models/current/nlu')
+   agent = Agent.load('models/dialogue', interpreter=interpreter)
 
    def chatlogs_html(messages):
        messages_html = "".join(["&lt;p&gt;{}&lt;/p&gt;".format(m) for m in messages])
@@ -403,7 +405,7 @@ If you are running the cells here in the docs, run this cell:
 
    while True:
        clear_output()
-       display(IPython.display.HTML(chatlogs_html(messages)))
+       display(HTML(chatlogs_html(messages)))
        time.sleep(0.3)
        a = input()
        messages.append(a)
@@ -474,9 +476,7 @@ this:
        - title: "super sad"
          payload: "super sad"
 
-		 
-.. include:: feedback.inc 
+		
+.. include:: feedback.inc
 
-.. raw:: html
-   :file: livechat.html
-   
+

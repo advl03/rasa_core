@@ -5,25 +5,25 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import errno
-import sys
-from builtins import input, range, str
-
 import inspect
 import io
 import json
 import logging
 import os
 import re
-import requests
-import six
+import sys
 import tempfile
+from builtins import input, range, str
 from hashlib import sha1
-from numpy import all, array
 from random import Random
-from requests.auth import HTTPBasicAuth
-from requests.exceptions import InvalidURL
 from threading import Thread
 from typing import Text, Any, List, Optional, Tuple, Dict, Set
+
+import requests
+import six
+from numpy import all, array
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import InvalidURL
 
 from rasa_nlu import utils as nlu_utils
 
@@ -73,6 +73,7 @@ def add_logging_option_arguments(parser):
     )
 
 
+# noinspection PyUnresolvedReferences
 def class_from_module_path(module_path):
     # type: (Text) -> Any
     """Given the module name and path of a class, tries to retrieve the class.
@@ -81,13 +82,17 @@ def class_from_module_path(module_path):
     import importlib
 
     # load the module, will raise ImportError if module cannot be loaded
+    from rasa_core.policies.keras_policy import KerasPolicy
+    from rasa_core.policies.fallback import FallbackPolicy
+    from rasa_core.policies.memoization import MemoizationPolicy
+
     if "." in module_path:
         module_name, _, class_name = module_path.rpartition('.')
         m = importlib.import_module(module_name)
         # get the class, will raise AttributeError if class cannot be found
         return getattr(m, class_name)
     else:
-        return globals()[module_path]
+        return globals().get(module_path, locals().get(module_path))
 
 
 def module_path_from_instance(inst):
@@ -107,12 +112,13 @@ def dump_obj_as_str_to_file(filename, text):
     # type: (Text, Text) -> None
     """Dump a text to a file."""
 
-    with io.open(filename, 'w') as f:
+    with io.open(filename, 'w', encoding="utf-8") as f:
         # noinspection PyTypeChecker
         f.write(str(text))
 
 
-def subsample_array(arr, max_values, can_modify_incoming_array=True, rand=None):
+def subsample_array(arr, max_values, can_modify_incoming_array=True,
+                    rand=None):
     # type: (List[Any], int, bool, Optional[Random]) -> List[Any]
     """Shuffles the array and returns `max_values` number of elements."""
     import random
@@ -465,6 +471,21 @@ def bool_arg(name, default=True):
     return request.args.get(name, str(default)).lower() == 'true'
 
 
+def float_arg(name):
+    # type: ( Text) -> float
+    """Return a passed argument cast as a float or None.
+
+    Checks the `name` parameter of the request if it contains a valid
+    float value. If not, `None` is returned."""
+    from flask import request
+
+    arg = request.args.get(name)
+    try:
+        return float(arg)
+    except TypeError:
+        return None
+
+
 def extract_args(kwargs,  # type: Dict[Text, Any]
                  keys_to_extract  # type: Set[Text]
                  ):
@@ -485,15 +506,16 @@ def extract_args(kwargs,  # type: Dict[Text, Any]
 
 
 def arguments_of(func):
-    """Return the parameters of the function `func` as a list of their names."""
+    """Return the parameters of the function `func` """
+    """as a list of their names."""
 
     try:
         # python 3.x is used
-        return inspect.signature(func).parameters.keys()
+        return list(inspect.signature(func).parameters.keys())
     except AttributeError:
         # python 2.x is used
         # noinspection PyDeprecation
-        return inspect.getargspec(func).args
+        return list(inspect.getargspec(func).args)
 
 
 def concat_url(base, subpath):
@@ -526,7 +548,7 @@ def all_subclasses(cls):
 
 def read_endpoint_config(filename, endpoint_type):
     # type: (Text, Text) -> Optional[EndpointConfig]
-    """Read an endpoint configuration file from disk and extract one config. """
+    """Read an endpoint configuration file from disk and extract one config."""
 
     if not filename:
         return None
@@ -547,7 +569,7 @@ def read_lines(filename, max_line_limit=None, line_pattern=".*"):
 
     line_filter = re.compile(line_pattern)
 
-    with io.open(filename, 'r') as f:
+    with io.open(filename, 'r', encoding="utf-8") as f:
         num_messages = 0
         for line in f:
             m = line_filter.match(line)
@@ -582,6 +604,11 @@ def remove_none_values(obj):
     return {k: v for k, v in obj.items() if v is not None}
 
 
+def pad_list_to_size(_list, size, padding_value=None):
+    """Pads _list with padding_value up to size"""
+    return _list + [padding_value] * (size - len(_list))
+
+
 class AvailableEndpoints(object):
     """Collection of configured endpoints."""
 
@@ -595,27 +622,37 @@ class AvailableEndpoints(object):
                 endpoint_file, endpoint_type="action_endpoint")
         model = read_endpoint_config(
                 endpoint_file, endpoint_type="models")
+        tracker_store = read_endpoint_config(
+                endpoint_file, endpoint_type="tracker_store")
 
-        return cls(nlg, nlu, action, model)
+        return cls(nlg, nlu, action, model, tracker_store)
 
-    def __init__(self, nlg=None, nlu=None, action=None, model=None):
+    def __init__(self,
+                 nlg=None,
+                 nlu=None,
+                 action=None,
+                 model=None,
+                 tracker_store=None):
         self.model = model
         self.action = action
         self.nlu = nlu
         self.nlg = nlg
+        self.tracker_store = tracker_store
 
 
 class EndpointConfig(object):
     """Configuration for an external HTTP endpoint."""
 
     def __init__(self, url, params=None, headers=None, basic_auth=None,
-                 token=None, token_name="token"):
+                 token=None, token_name="token", **kwargs):
         self.url = url
         self.params = params if params else {}
         self.headers = headers if headers else {}
         self.basic_auth = basic_auth
         self.token = token
         self.token_name = token_name
+        self.store_type = kwargs.pop('store_type', None)
+        self.kwargs = kwargs
 
     def request(self,
                 method="post",  # type: Text
@@ -666,13 +703,7 @@ class EndpointConfig(object):
 
     @classmethod
     def from_dict(cls, data):
-        return EndpointConfig(
-                data.get("url"),
-                data.get("params"),
-                data.get("headers"),
-                data.get("basic_auth"),
-                data.get("token"),
-                data.get("token_name"))
+        return EndpointConfig(**data)
 
     def __eq__(self, other):
         if isinstance(self, type(other)):

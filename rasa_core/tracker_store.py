@@ -31,6 +31,19 @@ class TrackerStore(object):
         self.domain = domain
         self.event_broker = event_broker
 
+    @staticmethod
+    def find_tracker_store(domain, store=None):
+        if store is None or store.store_type is None:
+            return InMemoryTrackerStore(domain)
+        elif store.store_type == 'redis':
+            return RedisTrackerStore(domain=domain,
+                                     host=store.url,
+                                     **store.kwargs)
+        elif store.store_type == 'mongod':
+            return MongoTrackerStore(domain=domain,
+                                     host=store.url,
+                                     **store.kwargs)
+
     def get_or_create_tracker(self, sender_id):
         tracker = self.retrieve(sender_id)
         if tracker is None:
@@ -192,6 +205,16 @@ class MongoTrackerStore(TrackerStore):
 
     def retrieve(self, sender_id):
         stored = self.conversations.find_one({"sender_id": sender_id})
+
+        # look for conversations which have used an `int` sender_id in the past
+        # and update them.
+        if stored is None and sender_id.isdigit():
+            from pymongo import ReturnDocument
+            stored = self.conversations.find_one_and_update(
+                {"sender_id": int(sender_id)},
+                {"$set": {"sender_id": str(sender_id)}},
+                return_document=ReturnDocument.AFTER)
+
         if stored is not None:
             if self.domain:
                 return DialogueStateTracker.from_dict(sender_id,

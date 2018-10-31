@@ -21,7 +21,7 @@ def test_story_visualization(default_domain, tmpdir):
     story_steps = StoryFileReader.read_from_file(
             "data/test_stories/stories.md", default_domain,
             interpreter=RegexInterpreter())
-    out_file = tmpdir.join("graph.png").strpath
+    out_file = tmpdir.join("graph.html").strpath
     generated_graph = visualize_stories(story_steps, default_domain,
                                         output_file=out_file,
                                         max_history=3,
@@ -77,3 +77,12 @@ def test_training_script_with_max_history_set(tmpdir):
     for policy in agent.policy_ensemble.policies:
         if hasattr(policy.featurizer, 'max_history'):
             assert policy.featurizer.max_history == max_history
+
+
+def test_training_script_with_restart_stories(tmpdir):
+    train_dialogue_model(DEFAULT_DOMAIN_PATH,
+                         "data/test_stories/stories_restart.md",
+                         tmpdir.strpath,
+                         interpreter=RegexInterpreter(),
+                         kwargs={})
+    assert True

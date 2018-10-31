@@ -13,25 +13,128 @@ This project adheres to `Semantic Versioning`_ starting with version 0.2.0.
 
 Added
 -----
-- custom message method in rocketchat channel
 - new message types for Facebook channel: quick replies, generic template, list template, typing on/off
-
+- openapi documentation of server API
+- NLU data learned through interactive learning will now be stored in a
+  separate markdown-format file (any previous NLU data is merged)
+- Command line interface for interactive learning now displays policy
+  confidence alongside the action name
+- added action prediction confidence & policy to ``ActionExecuted`` event
+- the Core policy configuration can now be set in a config.yaml file. 
+  This makes training custom policies possible.
+- both the date and the time at which a model was trained are now
+  included in the policy's metadata when it is persisted
+- show visualization of conversation while doing interactive learning
+- option for end-to-end evaluation of Rasa Core and NLU examples in
+  ``evaluate.py`` script
+- `/conversations/{sender_id}/story` endpoint for returning
+  the end-to-end story describing a conversation
+- docker-compose file to start a rasa core server together with nlu, an action server, and duckling
+- http server (``rasa_core.run --enable-api``) evaluation endpoint
+- ability to add tracker_store using endpoints.yml 
 
 Changed
 -------
+- improved response format for ``/predict`` endpoint
+- all error messages from the server are now in json format
+- ``agent.log_message`` now returns a tracker instead of the trackers state
+- the core container does not load the nlu model by default anymore.
+  Instead it can be connected to a nlu server.
+- stories are now visualized as ``.html`` page instead of an image
 
 
 Removed
 -------
-
+- removed graphviz dependency
 
 Fixed
 -----
-- wrong paramter name in rocketchat channel methods
 - fixed an issue with boolean slots where False and None had the same value
   (breaking model compatibility with models that use a boolean slot)
-- Software 2.0 link on interactive learning documentation page went to Tesla's homepage, now it links to Karpathy
-  blogpost
+- use utf8 everywhere when handling file IO
+- argument ``--connector`` on run script accepts custom channel module names
+- properly handle non ascii categorical slot values, e.g. ``大于100亿元``
+- fixed HTTP server attempting to authenticate based on incorrect path to
+  the correct JWT data field
+- all sender ids from channels are now handled as `str`.
+  Sender ids from old messages with an `int` id are converted to `str`.
+- legacy pep8 errors
+
+
+[0.11.12] - 2018-10-11
+^^^^^^^^^^^^^^^^^^^^^^
+
+Changed
+-------
+- Remove livechat widget from docs
+
+
+[0.11.11] - 2018-10-05
+^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- Add missing name() to facebook Messenger class
+
+
+[0.11.10] - 2018-10-05
+^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- backport fix to JWT schema
+
+
+[0.11.9] - 2018-10-04
+^^^^^^^^^^^^^^^^^^^^^
+
+Changed
+-------
+- pin tensorflow 1.10.0
+
+[0.11.8] - 2018-09-28
+^^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- cancel reminders if there has been a restarted event after the reminder
+
+Changed
+-------
+- JWT authentication now checks user roles. The ``admin`` role may access all
+  endpoints. For endpoints which contain a ``sender_id`` parameter, users
+  with the ``user`` role may only call endpoints where the ``sender_id``
+  matches the user's ``username``.
+
+[0.11.7] - 2018-09-26
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- custom message method in rocketchat channel
+
+Fixed
+-----
+- don't fail if rasa and rest input channels are used together
+- wrong paramter name in rocketchat channel methods
+- Software 2.0 link on interactive learning documentation page went to
+  Tesla's homepage, now it links to Karpathy blogpost
+
+[0.11.6] - 2018-09-20
+^^^^^^^^^^^^^^^^^^^^^
+
+Added
+-----
+- ``UserMessage`` and ``UserUttered`` classes have a new attribute
+  ``input_channel`` that stores the name of the ``InputChannel``
+  through which the message was received
+
+[0.11.5] - 2018-09-20
+^^^^^^^^^^^^^^^^^^^^^
+
+Fixed
+-----
+- numpy version incompatibility between rasa core and tensorflow
 
 [0.11.4] - 2018-09-19
 ^^^^^^^^^^^^^^^^^^^^^

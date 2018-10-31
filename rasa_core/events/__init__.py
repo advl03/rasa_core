@@ -15,6 +15,7 @@ import jsonpickle
 from dateutil import parser
 
 from rasa_core import utils
+from rasa_nlu.training_data.formats import MarkdownWriter, MarkdownReader
 
 if typing.TYPE_CHECKING:
     from rasa_core.trackers import DialogueStateTracker
@@ -44,6 +45,23 @@ def deserialise_events(serialized_events):
     return deserialised
 
 
+def deserialise_entities(entities):
+    if isinstance(entities, str):
+        entities = json.loads(entities)
+
+    return [e for e in entities if isinstance(e, dict)]
+
+
+def md_format_message(text, intent, entities):
+    message_from_md = MarkdownReader()._parse_training_example(text)
+    deserialised_entities = deserialise_entities(entities)
+    return MarkdownWriter()._generate_message_md(
+            {"text": message_from_md.text,
+             "intent": intent,
+             "entities": deserialised_entities}
+    )
+
+
 def first_key(d, default_key):
     if len(d) > 1:
         for k, v in d.items():
@@ -59,7 +77,7 @@ def first_key(d, default_key):
 # noinspection PyProtectedMember
 class Event(object):
     """Events describe everything that occurs in
-    a conversation and tell the :class:`DialogueStateTracker`
+    a conversation and tell the :class:`rasa_core.trackers.DialogueStateTracker`
     how to update its state."""
 
     type_name = "event"
@@ -230,7 +248,7 @@ class UserUttered(Event):
         except KeyError as e:
             raise ValueError("Failed to parse bot uttered event. {}".format(e))
 
-    def as_story_string(self):
+    def as_story_string(self, e2e=False):
         if self.intent:
             if self.entities:
                 ent_string = json.dumps({ent['entity']: ent['value']
@@ -238,9 +256,16 @@ class UserUttered(Event):
             else:
                 ent_string = ""
 
-            return "{intent}{entities}".format(
-                    intent=self.intent.get("name", ""),
-                    entities=ent_string)
+            parse_string = "{intent}{entities}".format(
+                           intent=self.intent.get("name", ""),
+                           entities=ent_string)
+            if e2e:
+                message = md_format_message(self.text,
+                                            self.intent,
+                                            self.entities)
+                return "{}: {}".format(self.intent.get("name"), message)
+            else:
+                return parse_string
         else:
             return self.text
 
@@ -697,18 +722,17 @@ class ActionExecuted(Event):
     def __init__(self,
                  action_name,
                  policy=None,
-                 policy_confidence=None,
+                 confidence=None,
                  timestamp=None):
         self.action_name = action_name
         self.policy = policy
-        self.policy_confidence = policy_confidence
+        self.confidence = confidence
         self.unpredictable = False
         super(ActionExecuted, self).__init__(timestamp)
 
     def __str__(self):
-        return ("ActionExecuted(action: {}, policy: {}, policy_confidence: {})"
-                "".format(self.action_name, self.policy,
-                          self.policy_confidence))
+        return ("ActionExecuted(action: {}, policy: {}, confidence: {})"
+                "".format(self.action_name, self.policy, self.confidence))
 
     def __hash__(self):
         return hash(self.action_name)
@@ -728,13 +752,17 @@ class ActionExecuted(Event):
 
         return [ActionExecuted(parameters.get("name"),
                                parameters.get("policy"),
-                               parameters.get("policy_confidence"),
+                               parameters.get("confidence"),
                                parameters.get("timestamp")
                                )]
 
     def as_dict(self):
         d = super(ActionExecuted, self).as_dict()
-        d.update({"name": self.action_name})
+        d.update({
+            "name": self.action_name,
+            "policy": self.policy,
+            "confidence": self.confidence
+        })
         return d
 
     def apply_to(self, tracker):

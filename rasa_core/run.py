@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from builtins import str
 from collections import namedtuple
-
+import os
 import argparse
 import logging
 from flask import Flask
@@ -23,8 +23,8 @@ from rasa_core.channels import (
     BUILTIN_CHANNELS)
 from rasa_core.interpreter import (
     NaturalLanguageInterpreter)
+from rasa_core.tracker_store import TrackerStore
 from rasa_core.utils import read_yaml_file, AvailableEndpoints
-
 logger = logging.getLogger()  # get the root logger
 
 
@@ -73,7 +73,7 @@ def create_argument_parser():
             help="Configuration file for the connectors as a yml file")
     parser.add_argument(
             '-c', '--connector',
-            choices=list(BUILTIN_CHANNELS.keys()),
+            type=str,
             help="service to connect to")
     parser.add_argument(
             '--enable_api',
@@ -99,8 +99,9 @@ def create_argument_parser():
     return parser
 
 
-def _create_external_channels(channel, credentials_file):
+def create_http_input_channels(channel, credentials_file):
     # type: (Optional[Text], Optional[Text]) -> List[InputChannel]
+    """Instantiate the chosen input channel."""
 
     if credentials_file:
         all_credentials = read_yaml_file(credentials_file)
@@ -122,29 +123,13 @@ def _create_single_channel(channel, credentials):
         try:
             input_channel_class = utils.class_from_module_path(channel)
             return input_channel_class.from_credentials(credentials)
-        except Exception:
+        except (AttributeError, ImportError):
             raise Exception(
                     "Failed to find input channel class for '{}'. Unknown "
                     "input channel. Check your credentials configuration to "
-                    "make sure the mentioned channel is not misspelled. If you "
-                    "are creating your own channel, make sure it is a proper "
-                    "name of a class in a module.".format(channel))
-
-
-def create_http_input_channels(channel,  # type: Union[None, Text, RestInput]
-                               credentials_file  # type: Optional[Text]
-                               ):
-    # type: (...) -> List[InputChannel]
-    """Instantiate the chosen input channel."""
-
-    if channel is None or channel in rasa_core.channels.BUILTIN_CHANNELS:
-        return _create_external_channels(channel, credentials_file)
-    else:
-        try:
-            c = utils.class_from_module_path(channel)
-            return [c()]
-        except Exception:
-            raise Exception("Unknown input channel for running main.")
+                    "make sure the mentioned channel is not misspelled. "
+                    "If you are creating your own channel, make sure it "
+                    "is a proper name of a class in a module.".format(channel))
 
 
 def start_cmdline_io(server_url, on_finish, **kwargs):
@@ -232,7 +217,7 @@ def load_agent(core_model, interpreter, endpoints,
                 generator=endpoints.nlg,
                 action_endpoint=endpoints.action,
                 model_server=endpoints.model,
-                tracker_store=tracker_store,
+                tracker_store=endpoints.tracker_store,
                 wait_time_between_pulls=wait_time_between_pulls
         )
     else:
@@ -260,10 +245,12 @@ if __name__ == '__main__':
     _endpoints = AvailableEndpoints.read_endpoints(cmdline_args.endpoints)
     _interpreter = NaturalLanguageInterpreter.create(cmdline_args.nlu,
                                                      _endpoints.nlu)
+    _tracker_store = TrackerStore.find_tracker_store(
+        None, _endpoints.tracker_store)
     _agent = load_agent(cmdline_args.core,
                         interpreter=_interpreter,
+                        tracker_store=_tracker_store,
                         endpoints=_endpoints)
-
     serve_application(_agent,
                       cmdline_args.connector,
                       cmdline_args.port,
